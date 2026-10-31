@@ -5,10 +5,7 @@ Adds a new [<img src="https://peak.wiki.gg/images/thumb/Napberry.png/28px-Napber
 ## The Sun Berry ##
 Meet the Wakeberry, [MESA](https://peak.wiki.gg/wiki/Mesa)'s fiery counterpart to the [<img src="https://peak.wiki.gg/images/thumb/Napberry.png/28px-Napberry.png?a1c23f" decoding="async" loading="lazy" width="28" height="28" data-file-width="512" data-file-height="512"/>  Napberry](https://peak.wiki.gg/wiki/Napberry).
 
-<figure>
-  <img alt="Wakeberry" src="https://raw.githubusercontent.com/MiiMii1205/WakeBerry/refs/heads/master/imgs/Wakeberry.png"  height="256" width="256" />
-  <figcaption>A Wakeberry</figcaption>
-</figure>
+<img alt="Wakeberry" src="https://raw.githubusercontent.com/MiiMii1205/WakeBerry/refs/heads/master/imgs/Wakeberry.png"  height="256" width="256" />
 
 As the name suggests, this sun-shaped berry can bring an [unconscious scout](https://peak.wiki.gg/wiki/Scout#Unconscious_state_&_Death) back into consciousness.
 
