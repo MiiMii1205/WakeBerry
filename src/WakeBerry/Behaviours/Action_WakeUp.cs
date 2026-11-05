@@ -20,7 +20,7 @@ public class Action_WakeUp : ItemAction
         var isPassedOut = character.data.passedOut;
         var hasFeeder = item.TryGetFeeder(out var feeder);
         
-        // Because hunger might get depleted before (or after) geting awaken, we'll need to calculate statuses as if the hunger didn't got away
+        // Because hunger might get depleted before (or after) getting awaken, we'll need to calculate statuses as if the hunger didn't get cured
         var additionnalHunger = 0f;
 
         foreach (var hung in item.gameObject.GetComponents<Action_RestoreHunger>())
