@@ -7,8 +7,8 @@ repository = "https://thunderstore.io"
 [package]
 namespace = "OracleTeam"
 name = "WakeBerry"
-description = "Adds a Napberry counterpart to MESA. A sun-shaped berry that wakes scouts up."
-websiteUrl = "" # TODO: Add a link to your mod repository here (optional)
+description = "Adds a new Napberry counterpart to MESA. A sun-shaped berry that wakes up unconscious scouts."
+websiteUrl = "https://github.com/MiiMii1205/WakeBerry" # TODO: Add a link to your mod repository here (optional)
 containsNsfwContent = false
 
 [package.dependencies]
