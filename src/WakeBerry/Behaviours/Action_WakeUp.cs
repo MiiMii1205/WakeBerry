@@ -19,10 +19,18 @@ public class Action_WakeUp : ItemAction
     {
         var isPassedOut = character.data.passedOut;
         var hasFeeder = item.TryGetFeeder(out var feeder);
+        
+        // Because hunger might get depleted before (or after) geting awaken, we'll need to calculate statuses as if the hunger didn't got away
+        var additionnalHunger = 0f;
 
-        character.refs.afflictions.SubtractStatus(CharacterAfflictions.STATUSTYPE.Drowsy, Mathf.Abs(FULL_HEAL));
-
-        if (character.data.passedOut)
+        foreach (var hung in item.gameObject.GetComponents<Action_RestoreHunger>())
+        {
+            additionnalHunger += hung.restorationAmount;
+        }
+        
+        var havePassedOut = (character.refs.afflictions.statusSum + additionnalHunger) > 0.9900000095367432;
+        
+        if (character.data.passedOut || havePassedOut)
         {
             Plugin.Log.LogInfo($"Waking up {character.characterName}...");
 
@@ -36,6 +44,20 @@ public class Action_WakeUp : ItemAction
                 {
                     var vToCompare = character.refs.afflictions.currentStatuses[i];
 
+                    if (vToCompare <= 0f)
+                    {
+                        Plugin.Log.LogDebug(
+                            $"Status {(CharacterAfflictions.STATUSTYPE) i} is not on {character.characterName}. Skipping...");
+                        continue;
+                    }
+
+                    if ((CharacterAfflictions.STATUSTYPE) i == CharacterAfflictions.STATUSTYPE.Petrify)
+                    {
+                        Plugin.Log.LogDebug(
+                            $"Can't wake up from Status {(CharacterAfflictions.STATUSTYPE) i}. Skipping...");
+                        continue;
+                    }
+                    
                     switch ((CharacterAfflictions.STATUSTYPE) i)
                     {
                         case CharacterAfflictions.STATUSTYPE.Weight:
@@ -47,12 +69,18 @@ public class Action_WakeUp : ItemAction
                             vToCompare = float.NegativeInfinity;
                             break;
                     }
-
+                    
                     if (vToCompare > largestStatusValue)
                     {
                         largestStatusIndex = i;
                         largestStatusValue = vToCompare;
                     }
+                }
+
+                if (largestStatusIndex == -1)
+                {
+                    Plugin.Log.LogWarning($"No largest status effect were found, yet {character.characterName} is STILL passed out. Something is wrong!");
+                    break;
                 }
 
                 var status = (CharacterAfflictions.STATUSTYPE) largestStatusIndex;
@@ -63,15 +91,22 @@ public class Action_WakeUp : ItemAction
                 {
                     case CharacterAfflictions.STATUSTYPE.Weight:
                     {
-                        Plugin.Log.LogWarning(
-                            $"Weight is the biggest status, which should NOT happen! Dropping all items anyways...");
                         if (character.data.IsCarryingCharacter)
                         {
-                            character.DropCarriedCharacter(false);
+                            if (character.data.fullyPassedOut)
+                            {
+                                Plugin.Log.LogWarning(
+                                    $"{character.characterName} is FULLY passed out and carrying {character.data.carriedPlayer}, which should NOT happen! Dropping {character.data.carriedPlayer} anyway...");
+                            }
+                            
+                            character.DropCarriedCharacter(false); 
                         }
 
+                        Plugin.Log.LogWarning(
+                            $"Weight is the biggest status. Dropping all items from {character.characterName}...");
                         // Drop everything you have RIGHT NOW!
                         character.refs.items.DropAllItems(true);
+                        
                         break;
                     }
 
@@ -82,6 +117,7 @@ public class Action_WakeUp : ItemAction
                         {
                             if (physicalThorn.isArrow)
                             {
+                                Plugin.Log.LogInfo($"Removing {physicalThorn} from {character.characterName}...");
                                 character.refs.afflictions.RemoveThorn(physicalThorn, false);
                             }
                         }
@@ -98,6 +134,7 @@ public class Action_WakeUp : ItemAction
                         {
                             if (physicalThorn.isThorn)
                             {
+                                Plugin.Log.LogInfo($"Removing {physicalThorn} from {character.characterName}...");
                                 character.refs.afflictions.RemoveThorn(physicalThorn, false);
                             }
                         }
@@ -135,7 +172,18 @@ public class Action_WakeUp : ItemAction
                                 amount);
                         }
 
+                        Plugin.Log.LogInfo($"Removing {status} from {character.characterName}...");
                         character.refs.afflictions.SubtractStatus(status, Mathf.Abs(FULL_HEAL));
+                        
+                        // Remove bugfix
+                        foreach (var allAttachedBug in Bugfix.AllAttachedBugs)
+                        {
+                            if (allAttachedBug.Value == character)
+                            {
+                                allAttachedBug.Key.Interact(character);
+                                break;
+                            }
+                        }
 
                         break;
                     }
@@ -153,6 +201,7 @@ public class Action_WakeUp : ItemAction
                             GameUtils.instance.IncrementFriendHealing(amt, feeder.photonView.Owner);
                         }
 
+                        Plugin.Log.LogInfo($"Removing {status} from {character.characterName}...");
                         character.refs.afflictions.SubtractStatus(status, Mathf.Abs(FULL_HEAL));
 
                         break;
@@ -160,6 +209,7 @@ public class Action_WakeUp : ItemAction
 
                     default:
                     {
+                        Plugin.Log.LogInfo($"Removing {status} from {character.characterName}...");
                         character.refs.afflictions.SubtractStatus(status, Mathf.Abs(FULL_HEAL));
                         break;
                     }
@@ -168,29 +218,22 @@ public class Action_WakeUp : ItemAction
         }
         else
         {
+            Plugin.Log.LogInfo($"Burning up {character.characterName}...");
             // Gives energy (with heat tho)
             character.AddExtraStamina(m_extraStamAmountIfAwake);
             character.refs.afflictions.AddStatus(CharacterAfflictions.STATUSTYPE.Hot, Mathf.Abs(FULL_BAR));
             
-            StartCoroutine(DelayedSpeed());
-            
             // character.refs.afflictions.AddAffliction(m_toGiveIfAwake);
         }
+        
+        // Remove any drowsiness.
+        character.refs.afflictions.SubtractStatus(CharacterAfflictions.STATUSTYPE.Drowsy, Mathf.Abs(FULL_HEAL));
 
         // Acheivements handleing...
         if (isPassedOut && character.refs.afflictions.statusSum <= 1 && hasFeeder)
         {
             GameUtils.instance.ThrowEmergencyPreparednessAchievement(feeder.photonView.Owner);
         }
-    }
-
-    private IEnumerator DelayedSpeed()
-    {
-        // Wait until all the heat given to the player when eaten gets removed.
-        // It might not be enough but at this point, skill issues.
-        var delay = (FULL_BAR * 1f) / character.refs.afflictions.hotReductionPerSecond;
-        yield return new WaitForSeconds(character.refs.afflictions.hotReductionCooldown + delay);
-        character.refs.afflictions.AddAffliction(m_toGiveIfAwake);
     }
 
     private IEnumerator DestroyStuckItems(StickyItemComponent stuckItem)
@@ -207,6 +250,8 @@ public class Action_WakeUp : ItemAction
                     yield return new WaitUntil(() => stuckItem.photonView.IsMine);
                 }
 
+
+                Plugin.Log.LogInfo($"Destroying {stuckItem} from {character.characterName}...");
                 // Just destroy the cactus ball. We don't want to have drop down and get stuck again
                 PhotonNetwork.Destroy(stuckItem.gameObject);
             }
