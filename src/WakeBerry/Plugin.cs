@@ -26,6 +26,7 @@ public partial class Plugin : BaseUnityPlugin
     public static GameObject WakeBerrySpawnPrefab { get; private set; } = null!;
 
     const float WAKEBERRY_SPANW_CHANCE = 0.05f;
+
     private void Awake()
     {
         Log = Logger;
@@ -46,12 +47,12 @@ public partial class Plugin : BaseUnityPlugin
     {
         if (scene.name.StartsWith("Level_") || scene.name.Equals("WilIsland"))
         {
-            if (MapHandler.Instance != null && 
+            if (MapHandler.Instance != null &&
                 MapHandler.Instance.BiomeIsPresent(Biome.BiomeType.Mesa) &&
                 MapHandler.Instance.gameObject.TryGetComponent<LevelGeneration>(out var gens))
             {
                 Log.LogInfo("GENERATING WAKEBERRY SEEDS!!!");
-                
+
                 GenerateSeedStates(gens);
 
                 var prevState = Random.state;
@@ -69,15 +70,16 @@ public partial class Plugin : BaseUnityPlugin
                         var singleItemSpawns = baseBiomeObject.GetComponentsInChildren<SingleItemSpawner>(true);
 
                         int nbOfBerries = 0;
-                        
+
                         foreach (var sis in singleItemSpawns)
                         {
                             if (sis.prefab.gameObject.TryGetComponent<Dynamite>(out _))
                             {
-                                if (IsFarEnoughFromOthers(sis.transform, berryPositions) && IsEligible(sis.transform) && IsLucky(WAKEBERRY_SPANW_CHANCE))
+                                if (IsFarEnoughFromOthers(sis.transform, berryPositions) && IsEligible(sis.transform) &&
+                                    IsLucky(WAKEBERRY_SPANW_CHANCE))
                                 {
                                     Log.LogDebug($"Placing a Wakeberry Plant @ {sis.transform.position}");
-                                    
+
                                     var sisTransform = sis.transform;
                                     var parent = sis.transform.parent;
 
@@ -103,21 +105,22 @@ public partial class Plugin : BaseUnityPlugin
                                     }
 
                                     orb.fakeBerry.index = idx;
-                                    
+
                                     Log.LogDebug(
                                         $"Wakeberry Plant #{nbOfBerries + 1}'s fake item IDX is {orb.fakeBerry.index}!");
 
                                     berryPositions.Add(bush.transform.position);
 
                                     nbOfBerries++;
-                                    
+
                                     Log.LogDebug($"Placed ({nbOfBerries}/{MAX_WAKEBERRY_NB}) Wakeberry Plants");
                                 }
                             }
 
                             if (nbOfBerries >= MAX_WAKEBERRY_NB)
                             {
-                                Log.LogInfo($"Placed the last possible Wakeberry Plant! ({nbOfBerries} Wakeberry Plants total)");
+                                Log.LogInfo(
+                                    $"Placed the last possible Wakeberry Plant! ({nbOfBerries} Wakeberry Plants total)");
                                 break;
                             }
                         }
@@ -143,9 +146,9 @@ public partial class Plugin : BaseUnityPlugin
 
         if (!isEligible)
         {
-            Log.LogDebug($"{sisTransform.gameObject.name} is a mine shaft dynamite, can't make it a Wakeberry Plant." );
+            Log.LogDebug($"{sisTransform.gameObject.name} is a mine shaft dynamite, can't make it a Wakeberry Plant.");
         }
-        
+
         return isEligible;
     }
 
@@ -154,7 +157,7 @@ public partial class Plugin : BaseUnityPlugin
         foreach (var pos in berryPos)
         {
             var distance = Vector3.Distance(pos, sisTransform.position);
-            
+
             if (distance < 10f)
             {
                 Log.LogDebug(
@@ -265,12 +268,13 @@ public partial class Plugin : BaseUnityPlugin
         const float fallbackDistance = 25f;
         return transform.position + transform.forward * fallbackDistance;
     }
+
     private void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
-    #if DEBUG
+#if DEBUG
     [ConsoleCommand]
     public static void SpawnWakeberryPlant()
     {
@@ -279,26 +283,26 @@ public partial class Plugin : BaseUnityPlugin
 
         try
         {
-           var plant= GameObject.Instantiate(WakeBerrySpawnPrefab, spawnPosition, spawnRotation);
-           
-           var idx = FakeItemManager.Instance.GetAvailableIndex();
-           var orb = plant.GetComponent<OrbThatMakesYouAwake>();
+            var plant = GameObject.Instantiate(WakeBerrySpawnPrefab, spawnPosition, spawnRotation);
 
-           if (idx >= FakeItemManager.Instance.allFakeItems.Count)
-           {
-               idx = FakeItemManager.Instance.allFakeItems.Count;
-               FakeItemManager.Instance.allFakeItems.Add(orb.fakeBerry);
-           }
-           else
-           {
-               FakeItemManager.Instance.allFakeItems[idx] = orb.fakeBerry;
-           }
+            var idx = FakeItemManager.Instance.GetAvailableIndex();
+            var orb = plant.GetComponent<OrbThatMakesYouAwake>();
 
-           orb.fakeBerry.index = idx;
+            if (idx >= FakeItemManager.Instance.allFakeItems.Count)
+            {
+                idx = FakeItemManager.Instance.allFakeItems.Count;
+                FakeItemManager.Instance.allFakeItems.Add(orb.fakeBerry);
+            }
+            else
+            {
+                FakeItemManager.Instance.allFakeItems[idx] = orb.fakeBerry;
+            }
 
-           Log.LogDebug(
-               $"Wakeberry fake item IDX is {orb.fakeBerry.index}!");
-           
+            orb.fakeBerry.index = idx;
+
+            Log.LogDebug(
+                $"Wakeberry fake item IDX is {orb.fakeBerry.index}!");
+
             Log.LogInfo($"Spawned Wakeberry Plant @ ({spawnPosition})");
         }
         catch (Exception ex)
@@ -306,8 +310,8 @@ public partial class Plugin : BaseUnityPlugin
             Log.LogError($"spawnwakeberryplant: Failed - {ex.Message}");
         }
     }
-    #endif
-    
+#endif
+
     private void AddLocalizedTextCsv()
     {
         using var reader = new StreamReader(Path.Join(Path.GetDirectoryName(Info.Location),
@@ -360,9 +364,9 @@ public partial class Plugin : BaseUnityPlugin
 
         wakeup.OnConsumed = true;
         wakeup.m_extraStamAmountIfAwake = 0.175f;
-        
+
         ShaderExtensions.ReplaceShaders(wakeberry);
-        
+
         Log.LogInfo("Loaded wakeberry item!");
 
         var wakeberrySpawn = b.LoadAsset<GameObject>("WakeBerrySpawn.prefab");
@@ -392,7 +396,7 @@ public partial class Plugin : BaseUnityPlugin
         obtmyh.fakeBerry.realItemPrefab = wakeberry.GetComponent<Item>();
 
         WakeBerrySpawnPrefab = wakeberrySpawn;
-        
+
         Log.LogInfo("Loaded wakeberry plant prefab!");
 
         b.Mod.RegisterContent();
